@@ -35,6 +35,7 @@ require (
 	github.com/knadh/koanf v1.4.0
 	github.com/mailru/easygo v0.0.0-20190618140210-3c14a0dc985f
 	github.com/mitchellh/mapstructure v1.4.1
+	github.com/near/rollup-data-availability v0.2.4-0.20231212152220-c8df23efc3e5
 	github.com/pkg/errors v0.9.1
 	github.com/r3labs/diff/v3 v3.0.1
 	github.com/rivo/tview v0.0.0-20240307173318-e804876934a1
