@@ -8,7 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	near "github.com/near/rollup-data-availability/gopkg/da-rpc"
-	"github.com/offchainlabs/nitro/arbstate"
+	"github.com/offchainlabs/nitro/arbstate/daprovider"
 	"github.com/offchainlabs/nitro/blsSignatures"
 	flag "github.com/spf13/pflag"
 )
@@ -32,7 +32,7 @@ func NewNearService(config DataAvailabilityConfig) (*NearService, error) {
 		return nil, err
 	}
 
-	near, err := near.NewConfig(config.NEARAggregator.Account, config.NEARAggregator.Contract, config.NEARAggregator.Key, config.NEARAggregator.Namespace)
+	near, err := near.NewConfig(config.NEARAggregator.Account, config.NEARAggregator.Contract, config.NEARAggregator.Key, config.NEARAggregator.Network, config.NEARAggregator.Namespace)
 
 	return &NearService{
 		near: *near,
@@ -46,12 +46,31 @@ func (s *NearService) String() string {
 }
 
 type NearAggregatorConfig struct {
-	Enable    bool
-	Account   string
-	Contract  string
-	Key       string
-	Namespace uint32
+	Enable        bool
+	Account       string
+	Contract      string
+	Key           string
+	Network       string
+	Namespace     uint32
 	StorageConfig NearStorageConfig `koanf:"storage"`
+}
+
+type NearStorageConfig struct {
+	Enable        bool
+	DataDir       string
+	SyncToStorage SyncToStorageConfig `koanf:"sync-to-storage"`
+}
+
+// DefaultNearStorageConfig
+var DefaultNearStorageConfig = NearStorageConfig{
+	Enable:  true,
+	DataDir: "./target/output",
+	SyncToStorage: DefaultSyncToStorageConfig,
+}
+
+func NearStorageConfigAddOptions(prefix string, f *flag.FlagSet) {
+	f.Bool(prefix+".enable", DefaultNearStorageConfig.Enable, "enable storage of sequencer batch data from a list of RPC endpoints; if other DAS storage types are enabled, this mode is used as a fallback")
+	f.String(prefix+".data-dir", DefaultNearStorageConfig.DataDir, "directory to store the storage data")
 }
 
 func NewNearAggregator(ctx context.Context, config DataAvailabilityConfig, nsvc *NearService) (*Aggregator, error) {
@@ -68,14 +87,16 @@ func NewNearAggregator(ctx context.Context, config DataAvailabilityConfig, nsvc 
 	return NewAggregator(ctx, config, services)
 }
 
-func (s *NearService) Store(ctx context.Context, message []byte, timeout uint64, sig []byte) (*arbstate.DataAvailabilityCertificate, error) {
+// Change from daprovider.DataAvailabilityCertificate to daprovider.DataAvailabilityCertificate
+// Change to Store(ctx context.Context, message []byte, timeout uint64) (*daprovider.DataAvailabilityCertificate, error)
+func (s *NearService) Store(ctx context.Context, message []byte, timeout uint64) (*daprovider.DataAvailabilityCertificate, error) {
 	log.Info("Storing message", "message", message)
-	frameRefBytes, err := s.near.ForceSubmit(message)
+	blobRefBytes, err := s.near.ForceSubmit(message)
 	if err != nil {
 		return nil, err
 	}
-	frameRef := near.FrameRef{}
-	err = frameRef.UnmarshalBinary(frameRefBytes)
+	blobRef := near.BlobRef{}
+	err = blobRef.UnmarshalBinary(blobRefBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -85,13 +106,13 @@ func (s *NearService) Store(ctx context.Context, message []byte, timeout uint64,
 		log.Error("Error getting keyset hash", "err", err, "keyset", keySet)
 		return nil, err
 	}
-	var certificate = arbstate.DataAvailabilityCertificate{
+	var certificate = daprovider.DataAvailabilityCertificate{
 		KeysetHash:  keysetHash,
-		DataHash:    [32]byte(frameRef.TxId),
+		DataHash:    [32]byte(blobRef.TxId),
 		Timeout:     timeout,
 		Sig:         nil,
 		SignersMask: 1,
-		Version: 255,
+		Version:     255,
 	}
 	newSig, err := blsSignatures.SignMessage(s.priv, certificate.SerializeSignableFields())
 	if err != nil {
@@ -128,16 +149,16 @@ func (s *NearService) GetByHash(ctx context.Context, hash common.Hash) ([]byte, 
 
 }
 
-func (s *NearService) ExpirationPolicy(ctx context.Context) (arbstate.ExpirationPolicy, error) {
-	return arbstate.KeepForever, nil
+func (s *NearService) ExpirationPolicy(ctx context.Context) (daprovider.ExpirationPolicy, error) {
+	return daprovider.KeepForever, nil
 }
 
 var DefaultNearAggregatorConfig = NearAggregatorConfig{
-	Enable:    true,
-	Account:   "topgunbakugo.testnet",
-	Contract:  "nitro.topgunbakugo.testnet",
-	Key:       "ed25519:kjdshdfskjdfhsdk",
-	Namespace: 1,
+	Enable:        true,
+	Account:       "topgunbakugo.testnet",
+	Contract:      "nitro.topgunbakugo.testnet",
+	Key:           "ed25519:kjdshdfskjdfhsdk",
+	Namespace:     1,
 	StorageConfig: DefaultNearStorageConfig,
 }
 
@@ -147,7 +168,7 @@ func NearAggregatorConfigAddOptions(prefix string, f *flag.FlagSet) {
 	f.String(prefix+".contract", DefaultNearAggregatorConfig.Contract, "Contract address for submitting NEAR transactions")
 	f.String(prefix+".key", DefaultNearAggregatorConfig.Key, "ED25519 Key for signing NEAR transactions, prefixed with 'ed25519:'")
 	f.Uint32(prefix+".namespace", DefaultNearAggregatorConfig.Namespace, "Namespace for this rollup")
-  NearStorageConfigAddOptions(prefix+".storage", f)	
+	NearStorageConfigAddOptions(prefix+".storage", f)
 }
 
 // TODO: add healtchecks
@@ -165,3 +186,35 @@ func (s *NearService) Put(ctx context.Context, data []byte, expirationTime uint6
 	log.Info("Frame ref", "frame ref", hex.EncodeToString(frameRefBytes))
 	return nil
 }
+type NearStorageService struct {
+	*NearService
+	config NearStorageConfig
+}
+
+func NewNearStorageService(r DataAvailabilityServiceReader, nsvc *NearService, config NearStorageConfig) (*NearStorageService, error) {
+	return &NearStorageService{
+		NearService: nsvc,
+		config:      config,
+	}, nil
+}
+
+func (s *NearService) Sync(ctx context.Context) error {
+	return nil
+}
+
+func (s *NearService) Close(ctx context.Context) error {
+	return nil
+}
+
+func (s *NearService) Stringer() string {
+	return fmt.Sprintf("NearService{}")
+}
+
+func (s *NearService) DASReader() daprovider.DASReader {
+	return s
+}
+
+func (s *NearService) DASWriter() daprovider.DASWriter {
+	return s
+}
+

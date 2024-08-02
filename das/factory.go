@@ -216,9 +216,9 @@ func CreateDAComponentsForDaserver(
 			return nil, nil, nil, nil, nil, err
 		}
 		if config.NEARAggregator.StorageConfig.Enable {
-			nearStorageService, err := NewNearStorageService(r, *svc, config.NEARAggregator.StorageConfig.DataDir)
+			nearStorageService, err := NewNearStorageService(r, svc, config.NEARAggregator.StorageConfig)
 			if err != nil {
-				return nil, nil, nil, nil, err
+				return nil, nil, nil, nil, nil, err
 			}
 			daReader = nearStorageService
 			syncConf := config.NEARAggregator.StorageConfig.SyncToStorage
@@ -242,7 +242,7 @@ func CreateDAComponentsForDaserver(
 					*seqInboxAddress,
 					&syncConf)
 				if err != nil {
-					return nil, nil, nil, nil, err
+					return nil, nil, nil, nil, nil, err
 				}
 			} else {
 				storageService = NewFallbackStorageService(nearStorageService, storageService, storageService,
@@ -251,7 +251,7 @@ func CreateDAComponentsForDaserver(
 
 			dasLifecycleManager.Register(storageService)
 			if err != nil {
-				return nil, nil, nil, nil, err
+				return nil, nil, nil, nil, nil, err
 			}
 		} else {
 			daWriter = w

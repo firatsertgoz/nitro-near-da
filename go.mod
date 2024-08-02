@@ -35,7 +35,6 @@ require (
 	github.com/knadh/koanf v1.4.0
 	github.com/mailru/easygo v0.0.0-20190618140210-3c14a0dc985f
 	github.com/mitchellh/mapstructure v1.4.1
-	github.com/near/rollup-data-availability v0.2.4-0.20231212152220-c8df23efc3e5
 	github.com/pkg/errors v0.9.1
 	github.com/r3labs/diff/v3 v3.0.1
 	github.com/rivo/tview v0.0.0-20240307173318-e804876934a1
@@ -51,7 +50,11 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
 
-require github.com/google/go-querystring v1.1.0 // indirect
+require (
+	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/near/rollup-data-availability v0.4.0 // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
+)
 
 require (
 	github.com/DataDog/zstd v1.4.5 // indirect
@@ -125,7 +128,6 @@ require (
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/juju/errors v0.0.0-20181118221551-089d3ea4e4d5 // indirect
-	github.com/juju/loggo v0.0.0-20180524022052-584905176618 // indirect
 	github.com/klauspost/compress v1.17.2 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
