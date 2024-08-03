@@ -106,6 +106,7 @@ func NearStorageConfigAddOptions(prefix string, f *flag.FlagSet) {
 	f.String(prefix+".data-dir", DefaultNearStorageConfig.DataDir, "directory to store the storage data")
 }
 
+
 func NewNearAggregator(ctx context.Context, config DataAvailabilityConfig, nsvc *NearServiceSidecar) (*Aggregator, error) {
 	svc := ServiceDetails{
 		service:     (DataAvailabilityServiceWriter)(nsvc),
