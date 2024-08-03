@@ -88,13 +88,13 @@ func CreateNearDAS(
 	ctx context.Context,
 	config *DataAvailabilityConfig,
 	lifecycleManager *LifecycleManager,
-) (DataAvailabilityServiceWriter, DataAvailabilityServiceReader, *NearService, error) {
+) (DataAvailabilityServiceWriter, DataAvailabilityServiceReader, *NearServiceSidecar, error) {
 	if !config.NEARAggregator.Enable {
 		return nil, nil, nil, errors.New("--node.data-availability.near-aggregator.enable must be set")
 	}
 
 	log.Info("Initialising near service")
-	nearSvc, err := NewNearService(*config)
+	nearSvc, err := NewNearServiceSidecar(*config)
 	if err != nil {
 		log.Error("initialising near service", "error", err)
 		return nil, nil, nil, err
@@ -384,7 +384,7 @@ func CreateDAReaderForNode(
 			}
 
 			// This falls back to REST and updates the local IPFS repo if the data is found.
-			nearSvc, err := NewNearService(*config)
+			nearSvc, err := NewNearServiceSidecar(*config)
 			if err != nil {
 				log.Error("initialising near service", "error", err)
 				return nil, nil, nil, err
