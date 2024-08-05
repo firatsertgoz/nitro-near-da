@@ -103,7 +103,23 @@ var DefaultNearStorageConfig = NearStorageConfig{
 
 func NearStorageConfigAddOptions(prefix string, f *flag.FlagSet) {
 	f.Bool(prefix+".enable", DefaultNearStorageConfig.Enable, "enable storage of sequencer batch data from a list of RPC endpoints; if other DAS storage types are enabled, this mode is used as a fallback")
-	f.String(prefix+".data-dir", DefaultNearStorageConfig.DataDir, "directory to store the storage data")
+	f.String(prefix+".DataDir", DefaultNearStorageConfig.DataDir, "directory to store the storage data")
+}
+
+type NearNameSpaceConfig struct {
+	Namespace nearsc.Namespace
+}
+
+var DefaultNearNameSpaceConfig = NearNameSpaceConfig{
+	Namespace: nearsc.Namespace{
+		ID:      1,
+		Version: 1,
+	},
+}
+
+func NearNameSpaceConfigAddOptions(prefix string, f *flag.FlagSet) {
+	f.Uint32(prefix+".Id", uint32(DefaultNearNameSpaceConfig.Namespace.ID), "Namespace Id for this rollup")
+	f.Uint32(prefix+".Version", uint32(DefaultNearNameSpaceConfig.Namespace.Version), "Version for this rollup")
 }
 
 
@@ -206,7 +222,8 @@ func NearAggregatorConfigAddOptions(prefix string, f *flag.FlagSet) {
 	f.String(prefix+".account", DefaultNearAggregatorConfig.Account, "Account Id for signing NEAR transactions")
 	f.String(prefix+".contract", DefaultNearAggregatorConfig.Contract, "Contract address for submitting NEAR transactions")
 	f.String(prefix+".key", DefaultNearAggregatorConfig.Key, "ED25519 Key for signing NEAR transactions, prefixed with 'ed25519:'")
-	f.Uint32(prefix+".namespace", uint32(DefaultNearAggregatorConfig.Namespace.ID), "Namespace Id for this rollup")
+	// f.Uint32(prefix+".namespace", uint32(DefaultNearAggregatorConfig.Namespace.ID), "Namespace Id for this rollup")
+	NearNameSpaceConfigAddOptions(prefix+".namespace", f)
 	NearStorageConfigAddOptions(prefix+".storage", f)
 }
 
